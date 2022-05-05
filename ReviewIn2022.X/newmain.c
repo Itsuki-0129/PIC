@@ -17,10 +17,10 @@
 // 'C' source line config statements
 
 // CONFIG1
-#pragma config FOSC = ECH       // Oscillator Selection (ECH, External Clock, High Power Mode (4-32 MHz): device clock supplied to CLKIN pin)
-#pragma config WDTE = ON        // Watchdog Timer Enable (WDT enabled)
+#pragma config FOSC = INTOSC    // Oscillator Selection (INTOSC oscillator: I/O function on CLKIN pin)
+#pragma config WDTE = OFF       // Watchdog Timer Enable (WDT disabled)
 #pragma config PWRTE = OFF      // Power-up Timer Enable (PWRT disabled)
-#pragma config MCLRE = ON       // MCLR Pin Function Select (MCLR/VPP pin function is MCLR)
+#pragma config MCLRE = OFF      // MCLR Pin Function Select (MCLR/VPP pin function is digital input)
 #pragma config CP = OFF         // Flash Program Memory Code Protection (Program memory code protection is disabled)
 #pragma config CPD = OFF        // Data Memory Code Protection (Data memory code protection is disabled)
 #pragma config BOREN = ON       // Brown-out Reset Enable (Brown-out Reset enabled)
@@ -34,7 +34,7 @@
 #pragma config PLLEN = ON       // PLL Enable (4x PLL enabled)
 #pragma config STVREN = ON      // Stack Overflow/Underflow Reset Enable (Stack Overflow or Underflow will cause a Reset)
 #pragma config BORV = LO        // Brown-out Reset Voltage Selection (Brown-out Reset Voltage (Vbor), low trip point selected.)
-#pragma config LVP = ON         // Low-Voltage Programming Enable (Low-voltage programming enabled)
+#pragma config LVP = OFF        // Low-Voltage Programming Enable (High-voltage on MCLR/VPP must be used for programming)
 
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
@@ -87,7 +87,23 @@ void main(void) {
     PORTB = 0;
     PORTC = 0;
     
+    //PWM機能
+    int duty = 1;
+    long long result = 0;
+    CCPTMRS1 = 0b00;
+    CCP5CON = 0b00001100;
+    T2CONbits.T2CKPS = 0b10;//プリスケーラ値は16
+    PR2 = 124;
+    CCPR5L = (5*duty)/4;
+    CCP5CONbits.DC5B0 = 5*duty&0b11;
+    T2CONbits.TMR2ON = 1;
+    
     while(1){
-        display(1234);
+        ADCON0bits.GO = 1;
+        while(ADCON0bits.GO == 1);
+        result = ADRES*50/504;
+        CCPR5L = 5*result/4;
+        CCP5CONbits.DC5B0 = 5*result&0b11;
+        display(result);
     }
 }
