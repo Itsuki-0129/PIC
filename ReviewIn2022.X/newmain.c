@@ -71,6 +71,13 @@ void display(int number) {
     }
 }
 
+//割り込み関数のプロトタイプ宣言
+void __interrupt() isr(void);
+
+//グローバル変数
+unsigned char timerValue; //タイマー設定値(main関数の最初でEEPROMから設定値を読み出し、この変数に入れておく)
+unsigned char timerCount; //現在のタイマー残り時間(main関数ではこの値を減らしながらタイマーカウント。割り込み処理関数では呼ばれたらtimerValueに戻す)
+
 
 
 void main(void) {
