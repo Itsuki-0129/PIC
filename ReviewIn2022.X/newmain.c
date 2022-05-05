@@ -74,6 +74,10 @@ void display(int number) {
 //割り込み関数のプロトタイプ宣言
 void __interrupt() isr(void);
 
+//EEPROM初期データ定義
+//アドレス0はタイマー設定値の初期値、残りはダミーデータ
+__EEPROM_DATA (0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
+
 //グローバル変数
 unsigned char timerValue; //タイマー設定値(main関数の最初でEEPROMから設定値を読み出し、この変数に入れておく)
 unsigned char timerCount; //現在のタイマー残り時間(main関数ではこの値を減らしながらタイマーカウント。割り込み処理関数では呼ばれたらtimerValueに戻す)
@@ -81,22 +85,30 @@ unsigned char timerCount; //現在のタイマー残り時間(main関数では�
 
 
 void main(void) {
-    OSCCON = 0x70; //PLL有効で1倍(0)、8MHz(1110)、無意味な絶対的値(0)、訳もわからず(00)=0b11110000よって8MHz
     //0b0-1110-0-00で1倍8MHzだと思う。そして内部発振使用。
+    OSCCON = 0x70; //PLL有効で1倍(0)、8MHz(1110)、無意味な絶対的値(0)、訳もわからず(00)=0b11110000よって8MHz
+    //アナログ入力設定
     ANSELA = 0x01; //0b00000001でAN0をアナログ入力
     ANSELB = 0x00; //全部デジタル
+    //入出力ピン設定
     TRISA = 0x01; //入力は(1)
     TRISB = 0x00; //全部出力
     TRISC = 0x00;
+    //ADコンバータ設定
     ADCON0 = 0x01; //0b0-00000-0-1
     ADCON1 = 0xa0; //0b1-010-0-0-00
     PORTA = 0;
     PORTB = 0;
     PORTC = 0;
     
+    //変数宣言
+    unsigned short timer;       //時間計測
+    unsigned short duty = 1;    //PWMのデューティーサイクル
+    unsigned short i;           //for文で使う変数
+    long long result;           //AD変換後の値
+    
+    
     //PWM機能
-    int duty = 1;
-    long long result = 0;
     CCPTMRS1 = 0b00;
     CCP5CON = 0b00001100;
     T2CONbits.T2CKPS = 0b10;//プリスケーラ値は16
