@@ -105,24 +105,35 @@ void main(void) {
     unsigned short timer;       //時間計測
     unsigned short duty = 1;    //PWMのデューティーサイクル(0~100)
     unsigned short i;           //for文で使う変数
-    long long result;           //AD変換後の値
+    long long result = 0;           //AD変換後の値
     
     
     //PWM機能
     CCPTMRS1 = 0b00;
+    //データシートのP230, 23.5: CCP制御レジスタを参照
     CCP5CON = 0b00001100;
-    T2CONbits.T2CKPS = 0b10;//プリスケーラ値は16
+    
+    //周期とデューティーサイクルの設定
+    //データシートのP205, 22.5: Timer2/4/6 制御レジスタを参照
+    //プリスケーラ値は16
+    T2CONbits.T2CKPS = 0b10;
+    
+    //周期を1msに設定するので、1ms=(PR2+1)*4*(1/8000000)*16より124が導かれる。
     PR2 = 124;
+    //デューティーサイクルを計10ビットの値として、上位8ビットをCCPR5Lレジスタに、下位2ビットをCCP5CONレジスタのDC5Bビットに、書き込む
+    //上位8ビットについて、2進数では2で割ると1桁右にシフトできるため、2*2=4で割る。
     CCPR5L = (5*duty)/4;
+    //下位2ビットについて、そのままでも上位桁が無視されてOKだが、一応ANDで下位２ビットだけをマスクする。
     CCP5CONbits.DC5B0 = 5*duty&0b11;
+    //PWMをスタートさせる。これでPWM信号が生成され始める。
     T2CONbits.TMR2ON = 1;
     
     while(1){
-        result = adconv()*50/504;
-        CCPR5L = 5*result/4;
+        result = adconv();
+        CCPR5L = 5*(result*100/1023)/4;
         CCP5CONbits.DC5B0 = 5*result&0b11;
         if (!RB7) {
-            display(adconv());
+            display(result*100/1023);
         }
     }
 }
