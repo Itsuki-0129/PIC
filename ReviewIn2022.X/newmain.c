@@ -130,10 +130,11 @@ void main(void) {
     
     while(1){
         result = adconv();
-        CCPR5L = 5*(result*100/1023)/4;
+        result = result*100/1024;
+        CCPR5L = 5*result/4;
         CCP5CONbits.DC5B0 = 5*result&0b11;
         if (!RB7) {
-            display(result*100/1023);
+            display(result);
         }
     }
 }
