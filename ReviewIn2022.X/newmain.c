@@ -76,7 +76,7 @@ void __interrupt() isr(void);
 
 //EEPROM初期データ定義
 //アドレス0はタイマー設定値の初期値、残りはダミーデータ
-__EEPROM_DATA (0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
+__EEPROM_DATA (0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
 
 //グローバル変数
 unsigned char timerValue; //タイマー設定値(main関数の最初でEEPROMから設定値を読み出し、この変数に入れておく)
@@ -91,8 +91,8 @@ void main(void) {
     ANSELA = 0x01; //0b00000001でAN0をアナログ入力
     ANSELB = 0x00; //全部デジタル
     //入出力ピン設定
-    TRISA = 0x01; //入力は(1)
-    TRISB = 0x00; //全部出力
+    TRISA = 0x01; //入力はRA0だけ
+    TRISB = 0x80; //入力はRB7だけ
     TRISC = 0x00;
     //ADコンバータ設定
     ADCON0 = 0x01; //0b0-00000-0-1
@@ -103,7 +103,7 @@ void main(void) {
     
     //変数宣言
     unsigned short timer;       //時間計測
-    unsigned short duty = 1;    //PWMのデューティーサイクル
+    unsigned short duty = 1;    //PWMのデューティーサイクル(0~100)
     unsigned short i;           //for文で使う変数
     long long result;           //AD変換後の値
     
@@ -118,11 +118,33 @@ void main(void) {
     T2CONbits.TMR2ON = 1;
     
     while(1){
-        ADCON0bits.GO = 1;
-        while(ADCON0bits.GO == 1);
-        result = ADRES*50/504;
+        result = adconv()*50/504;
         CCPR5L = 5*result/4;
         CCP5CONbits.DC5B0 = 5*result&0b11;
-        display(result);
+        if (!RB7) {
+            display(adconv());
+        }
     }
+}
+
+//AD変換関数
+int adconv() {
+    ADCON0bits.GO = 1;
+    while (ADCON0bits.GO == 1);
+    return ADRES;
+}
+
+
+//割り込み関数
+void __interrupt() isr(void) {
+    //設定時間を表現するために現在の設定時間を7セグに表示する
+    for (int i=0; i<100; i++) {
+        display(timerValue);
+    }
+    
+    //timerを最初から開始する
+    timerCount = timerValue;
+    
+    //割り込みフラグをクリアする
+    //IOCAF3 = 0;
 }
