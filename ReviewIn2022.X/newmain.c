@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define _XTAL_FREQ 8000000 //8MHz
+int timer = 0;
 
 void display(int number) {
     int kathode=0,dnum=0,kc[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x27,0x7f,0x6f,0x00};
@@ -72,16 +73,24 @@ void display(int number) {
     }
 }
 
+//割り込みの初期設定
+void intrInit() {
+    //T1CON = 0b00110001;
+    T1CONbits.TMR1CS = 0b00;
+    T1CONbits.T1CKPS = 0b11;
+    T1CONbits.T1OSCEN = 0;
+    T1CONbits.nT1SYNC = 0;
+    T1CONbits.TMR1ON = 1;
+    TMR1H = (55536 >>8);
+    TMR1L = (55536 & 0x00ff);
+    TMR1IF = 0;
+    TMR1IE = 1;
+    INTCONbits.GIE = 1;
+    INTCONbits.PEIE = 1;           
+}
+
 //割り込み関数のプロトタイプ宣言
-void __interrupt() isr(void);
-
-//EEPROM初期データ定義
-//アドレス0はタイマー設定値の初期値、残りはダミーデータ
-__EEPROM_DATA (0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-
-//グローバル変数
-unsigned char timerValue; //タイマー設定値(main関数の最初でEEPROMから設定値を読み出し、この変数に入れておく)
-unsigned char timerCount; //現在のタイマー残り時間(main関数ではこの値を減らしながらタイマーカウント。割り込み処理関数では呼ばれたらtimerValueに戻す)
+//void __interrupt() isr(void);
 
 
 
@@ -103,15 +112,9 @@ void main(void) {
     PORTC = 0;
     
     //変数宣言
-    unsigned short timer;       //時間計測
     unsigned short duty = 1;    //PWMのデューティーサイクル(0~100)
     unsigned short i;           //for文で使う変数
     long long result = 0;           //AD変換後の値
-    
-    //タイマー時間変数
-    //EEPROMに保存してある値を使用する
-    //timerValueは1バイトで宣言済み
-    timerValue = eeprom_read(0);
     
     
     //PWM機能
@@ -134,14 +137,18 @@ void main(void) {
     //PWMをスタートさせる。これでPWM信号が生成され始める。
     T2CONbits.TMR2ON = 1;
     
+    
+    //割り込みの初期化
+    intrInit();
+    
     while(1){
         result = adconv();
         result = result*100/1024;
         CCPR5L = 5*result/4;
         CCP5CONbits.DC5B0 = 5*result&0b11;
-        if (!RB7) {
-            display(result);
-        }
+        //display(result);
+        display(timer);
+            
     }
 }
 
@@ -152,17 +159,20 @@ int adconv() {
     return ADRES;
 }
 
-
 //割り込み関数
 void __interrupt() isr(void) {
-    //設定時間を表現するために現在の設定時間を7セグに表示する
-    for (int i=0; i<100; i++) {
-        display(timerValue);
+    volatile static int intr_counter;
+    GIE = 0;
+    if (TMR1IF == 1) {
+        TMR1H = (55536 >>8);
+        TMR1L = (55536 & 0x00ff);
+        
+        intr_counter++;
+        if( intr_counter == 100) {
+            timer++;
+            intr_counter = 0;
+        }
+        TMR1IF = 0;
     }
-    
-    //timerを最初から開始する
-    timerCount = timerValue;
-    
-    //割り込みフラグをクリアする
-    //IOCAF3 = 0;
+    GIE = 1;
 }
