@@ -107,6 +107,11 @@ void main(void) {
     unsigned short i;           //for文で使う変数
     long long result = 0;           //AD変換後の値
     
+    //タイマー時間変数
+    //EEPROMに保存してある値を使用する
+    //timerValueは1バイトで宣言済み
+    timerValue = eeprom_read(0);
+    
     
     //PWM機能
     CCPTMRS1 = 0b00;
