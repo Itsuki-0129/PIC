@@ -138,8 +138,41 @@ void main(void) {
         result = result*100/1024;
         CCPR5L = 5*result/4;
         CCP5CONbits.DC5B0 = 5*result&0b11;
-        if (!RB7) {
-            display(result);
+        display(result);
+        
+        //スイッチが押されたらタイマースタートする
+        //タイマースタート前にタイマー時間設定ボタンが押されたらその処理を行う
+        while (RB7) {
+            //ADコンバータ読み取り開始
+            GO = 1;
+            
+            //読み取り完了待ち
+            while(GO);
+            
+            //タイマー時間を減らす
+            timerValue = 999;
+            
+            //タイマー設定値をEEPROMに書き込む
+            eeprom_write(0, timerValue);
+            
+            //RB7割り込み設定
+            IOCIE = 1;
+            IOCBN7 = 1;
+            GIE = 1;
+            
+            //タイマー開始
+            timerCount = timerValue;
+            do {
+                timerCount--;
+                display(timerCount);
+            } while ( timerCount );
+            
+            //割り込み禁止
+            GIE = 0;
+            IOCIE = 0;
+            IOCBN7 = 0;
+            
+            
         }
     }
 }
@@ -155,7 +188,7 @@ int adconv() {
 //割り込み関数
 void __interrupt() isr(void) {
     //設定時間を表現するために現在の設定時間を7セグに表示する
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<1000; i++) {
         display(timerValue);
     }
     
@@ -163,5 +196,5 @@ void __interrupt() isr(void) {
     timerCount = timerValue;
     
     //割り込みフラグをクリアする
-    //IOCAF3 = 0;
+    IOCBF7 = 0;
 }
