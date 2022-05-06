@@ -67,6 +67,7 @@ void display(int number) {
         __delay_us(499);
         PORTB=0;
         PORTC=0;
+        __delay_us(1);
         kathode=kathode*2;
     }
 }
