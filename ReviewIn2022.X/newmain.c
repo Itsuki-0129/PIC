@@ -150,6 +150,12 @@ void main(void) {
         CCP5CONbits.DC5B0 = 5*result&0b11;
         //display(result);
         display(timer);
+        if ( RB7==1 ) {
+            while ( RB7==1 ) {
+                display(timer);
+            }
+            T1CONbits.TMR1ON = !T1CONbits.TMR1ON;
+        }
             
     }
 }
