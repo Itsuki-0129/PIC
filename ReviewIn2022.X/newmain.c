@@ -76,17 +76,19 @@ void display(int number) {
 //割り込みの初期設定
 void intrInit() {
     //T1CON = 0b00110001;
-    T1CONbits.TMR1CS = 0b00;
-    T1CONbits.T1CKPS = 0b11;
-    T1CONbits.T1OSCEN = 0;
-    T1CONbits.nT1SYNC = 0;
-    T1CONbits.TMR1ON = 1;
-    TMR1H = (55536 >>8);
+    T1CONbits.TMR1CS = 0b00;    //Timer1クロック源に命令クロック(Fosc/4)を選択
+    T1CONbits.T1CKPS = 0b11;    //プリスケーラ値が1:8
+    T1CONbits.T1OSCEN = 0;      //専用のTimer1オシレータ回路を無効にする
+    T1CONbits.nT1SYNC = 0;      //外部クロック入力をシステムクロック(Fosc)に同期する
+    T1CONbits.TMR1ON = 1;       //Timer1を有効にする
+    
+    
+    TMR1H = (55536 >>8);        //Timer1の初期化(65536-10000=55536)
     TMR1L = (55536 & 0x00ff);
-    TMR1IF = 0;
-    TMR1IE = 1;
-    INTCONbits.GIE = 1;
-    INTCONbits.PEIE = 1;           
+    TMR1IF = 0;                 //Timer1の割り込みフラグを0にする
+    TMR1IE = 1;                 //Timer1割り込みを許可する
+    INTCONbits.GIE = 1;         //グローバル割り込みを許可する
+    INTCONbits.PEIE = 1;        //割り込みを許可する
 }
 
 //割り込み関数のプロトタイプ宣言
