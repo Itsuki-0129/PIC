@@ -94,6 +94,30 @@ void intrInit() {
 //割り込み関数のプロトタイプ宣言
 //void __interrupt() isr(void);
 
+//AD変換関数
+int adconv() {
+    ADCON0bits.GO = 1;
+    while (ADCON0bits.GO == 1);
+    return ADRES;
+}
+
+//割り込み関数
+void __interrupt() isr(void) {
+    volatile static int intr_counter;
+    GIE = 0;
+    if (TMR1IF == 1) {
+        TMR1H = (55536 >>8);
+        TMR1L = (55536 & 0x00ff);
+        
+        intr_counter++;
+        if( intr_counter == 100) {
+            timer++;
+            intr_counter = 0;
+        }
+        TMR1IF = 0;
+    }
+    GIE = 1;
+}
 
 
 void main(void) {
@@ -158,29 +182,4 @@ void main(void) {
         }
             
     }
-}
-
-//AD変換関数
-int adconv() {
-    ADCON0bits.GO = 1;
-    while (ADCON0bits.GO == 1);
-    return ADRES;
-}
-
-//割り込み関数
-void __interrupt() isr(void) {
-    volatile static int intr_counter;
-    GIE = 0;
-    if (TMR1IF == 1) {
-        TMR1H = (55536 >>8);
-        TMR1L = (55536 & 0x00ff);
-        
-        intr_counter++;
-        if( intr_counter == 100) {
-            timer++;
-            intr_counter = 0;
-        }
-        TMR1IF = 0;
-    }
-    GIE = 1;
 }
